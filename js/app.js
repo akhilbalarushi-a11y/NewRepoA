@@ -1,6 +1,32 @@
 // Stress Predictor Application JavaScript
 
 document.addEventListener('DOMContentLoaded', function() {
+    // Theme Toggle Initialization
+    const themeToggle = document.getElementById('themeToggle');
+    const html = document.documentElement;
+    
+    // Check for saved theme preference or system preference
+    const savedTheme = localStorage.getItem('theme');
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    
+    if (savedTheme === 'dark' || (!savedTheme && prefersDark)) {
+        html.classList.add('dark-mode');
+        themeToggle.classList.add('dark');
+    }
+    
+    // Theme toggle button click handler
+    themeToggle.addEventListener('click', function() {
+        html.classList.toggle('dark-mode');
+        themeToggle.classList.toggle('dark');
+        
+        // Save preference
+        if (html.classList.contains('dark-mode')) {
+            localStorage.setItem('theme', 'dark');
+        } else {
+            localStorage.setItem('theme', 'light');
+        }
+    });
+
     const predictionForm = document.getElementById('predictionForm');
     const sleepSlider = document.getElementById('sleep_quality');
     const workloadSlider = document.getElementById('work_load_score');
