@@ -1,0 +1,6 @@
+# requirements.txt
+flask
+pandas
+scikit-learn
+# Add any other ML libraries you use
+joblib

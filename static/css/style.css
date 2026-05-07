@@ -1,0 +1,45 @@
+/* static/css/style.css */
+body {
+    font-family: 'Arial', sans-serif;
+    background-color: #f8f9fa; /* Light gray background */
+}
+
+.navbar {
+    background-color: #007bff !important; /* Bootstrap primary blue */
+}
+
+.navbar-brand, .nav-link {
+    color: #ffffff !important;
+}
+
+.container {
+    max-width: 960px; /* Slightly wider container */
+}
+
+h1, h3 {
+    color: #333;
+}
+
+#predictionResult {
+    background-color: #e9ecef; /* Slightly darker background for result */
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.btn-primary {
+    background-color: #28a745; /* Green for primary action */
+    border-color: #28a745;
+}
+
+.btn-primary:hover {
+    background-color: #218838;
+    border-color: #1e7e34;
+}
+
+/* Add responsive styles if needed */
+@media (max-width: 768px) {
+    .container {
+        padding: 10px;
+    }
+}
