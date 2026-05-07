@@ -1,0 +1,212 @@
+// Stress Predictor Application JavaScript
+
+document.addEventListener('DOMContentLoaded', function() {
+    const predictionForm = document.getElementById('predictionForm');
+    const sleepSlider = document.getElementById('sleep_quality');
+    const workloadSlider = document.getElementById('work_load_score');
+    const sleepValue = document.getElementById('sleep_value');
+    const workloadValue = document.getElementById('workload_value');
+    const predictionResultDiv = document.getElementById('predictionResult');
+    const stressLevelSpan = document.getElementById('stressLevel');
+    const errorMessageDiv = document.getElementById('errorMessage');
+    const errorTextP = document.getElementById('errorText');
+
+    // Update slider values in real-time
+    sleepSlider.addEventListener('input', function() {
+        sleepValue.textContent = this.value;
+    });
+
+    workloadSlider.addEventListener('input', function() {
+        workloadValue.textContent = this.value;
+    });
+
+    // Form submission handler
+    predictionForm.addEventListener('submit', async function(event) {
+        event.preventDefault();
+
+        // Clear previous results
+        predictionResultDiv.style.display = 'none';
+        errorMessageDiv.style.display = 'none';
+
+        try {
+            // Collect form data
+            const formData = new FormData(predictionForm);
+            const data = {
+                sleep_quality: parseFloat(formData.get('sleep_quality')),
+                exercise_minutes: parseFloat(formData.get('exercise_minutes')),
+                hours_worked: parseFloat(formData.get('hours_worked')),
+                social_interactions: parseFloat(formData.get('social_interactions')),
+                work_load_score: parseFloat(formData.get('work_load_score')),
+                heart_rate: parseFloat(formData.get('heart_rate'))
+            };
+
+            // Validate data
+            if (Object.values(data).some(val => isNaN(val))) {
+                showError('Please enter valid numbers for all fields.');
+                return;
+            }
+
+            // Try to connect to backend API
+            try {
+                const response = await fetch('/predict', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(data),
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    displayPrediction(result.prediction);
+                } else {
+                    // Fallback to local prediction if backend fails
+                    const localPrediction = calculateLocalPrediction(data);
+                    displayPrediction(localPrediction);
+                }
+            } catch (error) {
+                // Backend not available, use local prediction
+                console.log('Backend not available, using local prediction model');
+                const localPrediction = calculateLocalPrediction(data);
+                displayPrediction(localPrediction);
+            }
+
+        } catch (error) {
+            console.error('Error:', error);
+            showError('An error occurred while processing your input. Please try again.');
+        }
+    });
+
+    // Local prediction calculation for demo
+    function calculateLocalPrediction(data) {
+        // Simple calculation based on input factors
+        let stressScore = 0;
+
+        // Sleep quality (lower is worse)
+        if (data.sleep_quality < 3) stressScore += 2;
+        if (data.sleep_quality < 2) stressScore += 2;
+
+        // Exercise (less exercise = more stress)
+        if (data.exercise_minutes < 20) stressScore += 1;
+        if (data.exercise_minutes < 10) stressScore += 1;
+
+        // Work hours (more hours = more stress)
+        if (data.hours_worked > 50) stressScore += 2;
+        if (data.hours_worked > 60) stressScore += 1;
+
+        // Social interactions (less interaction = higher stress)
+        if (data.social_interactions < 2) stressScore += 1;
+
+        // Workload score
+        if (data.work_load_score > 7) stressScore += 2;
+        if (data.work_load_score > 9) stressScore += 1;
+
+        // Heart rate (elevated = stress indicator)
+        if (data.heart_rate > 100) stressScore += 2;
+        if (data.heart_rate > 110) stressScore += 1;
+
+        // Normalize to 0-2 scale for Low/Moderate/High
+        return Math.min(2, Math.max(0, Math.round(stressScore / 4)));
+    }
+
+    // Display prediction results
+    function displayPrediction(prediction) {
+        let stressDescription = '';
+        let badgeClass = '';
+        let emoji = '';
+
+        switch (prediction) {
+            case 0:
+                stressDescription = '✅ Low Stress';
+                badgeClass = 'bg-success';
+                emoji = '😊';
+                break;
+            case 1:
+                stressDescription = '⚠️ Moderate Stress';
+                badgeClass = 'bg-warning';
+                emoji = '😐';
+                break;
+            case 2:
+            default:
+                stressDescription = '🚨 High Stress';
+                badgeClass = 'bg-danger';
+                emoji = '😟';
+        }
+
+        stressLevelSpan.textContent = stressDescription;
+        stressLevelSpan.className = `badge ${badgeClass} p-3 fs-5`;
+
+        // Add recommendations
+        const recommendations = getRecommendations(prediction);
+        const resultHTML = `
+            <h4 class="alert-heading">${emoji} Stress Assessment Results</h4>
+            <p class="mb-3"><strong>Your Predicted Stress Level:</strong></p>
+            <div class="stress-badge">
+                <span class="badge ${badgeClass} p-3 fs-5">${stressDescription}</span>
+            </div>
+            <hr>
+            <div class="mt-3">
+                <h6>Recommendations:</h6>
+                <ul class="mb-0">
+                    ${recommendations.map(rec => `<li>${rec}</li>`).join('')}
+                </ul>
+            </div>
+            <small class="text-muted d-block mt-3">💡 This is a demonstration based on provided input values.</small>
+        `;
+
+        predictionResultDiv.innerHTML = resultHTML;
+        predictionResultDiv.style.display = 'block';
+        predictionResultDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    // Get recommendations based on stress level
+    function getRecommendations(prediction) {
+        const recommendations = {
+            0: [
+                'Maintain your current lifestyle habits',
+                'Continue regular exercise and social interactions',
+                'Keep prioritizing quality sleep',
+                'Monitor your stress levels regularly'
+            ],
+            1: [
+                'Increase physical activity or exercise time',
+                'Improve sleep quality and consistency',
+                'Spend more time with friends and family',
+                'Review and reorganize your work schedule'
+            ],
+            2: [
+                'Seek professional help from a healthcare provider',
+                'Implement stress-reduction techniques (meditation, yoga)',
+                'Reduce work hours if possible',
+                'Prioritize sleep (7-9 hours per night)',
+                'Engage in regular physical activity',
+                'Consider talking to a therapist or counselor'
+            ]
+        };
+
+        return recommendations[prediction] || recommendations[0];
+    }
+
+    // Show error message
+    function showError(message) {
+        errorTextP.textContent = message;
+        errorMessageDiv.style.display = 'block';
+        errorMessageDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    // Smooth scrolling for navigation links
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener('click', function (e) {
+            const href = this.getAttribute('href');
+            if (href !== '#' && document.querySelector(href)) {
+                e.preventDefault();
+                document.querySelector(href).scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'start'
+                });
+            }
+        });
+    });
+
+    console.log('Stress Predictor app initialized');
+});
