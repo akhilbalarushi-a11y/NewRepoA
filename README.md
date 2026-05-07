@@ -31,20 +31,26 @@ Visit `http://localhost:5000` in your browser.
 
 ```
 stress_predictor/
-├── app.py                 # Flask web server and API
-├── train_model.py         # ML model training script
-├── requirements.txt       # Python dependencies
-├── README.md             # This file
+├── app.py                    # Flask web server and API
+├── train_model.py            # ML model training script
+├── index.html                # Static web interface
+├── requirements.txt          # Python dependencies
+├── README.md                 # This file
+├── assets/                   # Asset files
+├── css/
+│   └── style.css            # Custom stylesheets
 ├── data/
-│   └── stress_data.csv   # Training dataset
+│   └── stress_data.csv      # Training dataset
+├── js/
+│   └── app.js               # Frontend JavaScript
 ├── models/
-│   └── stress_model.pkl  # Trained ML model
-├── static/
-│   ├── css/              # Stylesheets
-│   └── js/               # JavaScript files
-├── templates/
-│   └── index.html        # Web interface
-└── .gitignore
+│   └── stress_model.pkl     # Trained ML model
+├── static/css/
+│   ├── bootstrap.min.css    # Bootstrap framework
+│   ├── style.css            # Bootstrap styles
+│   └── tailwind.css         # Tailwind CSS
+└── templates/
+    └── index.html           # Flask template
 ```
 
 ## 💻 Technologies
