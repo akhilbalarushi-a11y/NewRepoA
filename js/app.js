@@ -92,7 +92,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Work hours (more hours = more stress)
         if (data.hours_worked > 50) stressScore += 2;
-        if (data.hours_worked > 60) stressScore += 1;
+        if (data.hours_worked > 80) stressScore += 1;
 
         // Social interactions (less interaction = higher stress)
         if (data.social_interactions < 2) stressScore += 1;

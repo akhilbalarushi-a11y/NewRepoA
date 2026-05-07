@@ -15,7 +15,7 @@
     <!-- Navigation -->
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
         <div class="container-fluid">
-            <a class="navbar-brand" href="#">🧠 Stress Predictor</a>
+            <a class="navbar-brand" href="#">    Stress Predictor</a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
             </button>
@@ -74,29 +74,29 @@
                         <div class="card-body">
                             <form id="predictionForm">
                                 <div class="mb-3">
-                                    <label for="sleep_quality" class="form-label">Sleep Quality (1=Poor, 5=Excellent)</label>
-                                    <input type="range" class="form-range" id="sleep_quality" name="sleep_quality" min="1" max="5" value="3" required>
-                                    <small class="text-muted" id="sleep_value">3</small>
+                                    <label for="sleep_quality" class="form-label">Sleep Quality (1=Poor, 8=Excellent)</label>
+                                    <input type="range" class="form-range" id="sleep_quality" name="sleep_quality" min="1" max="8" value="3" required>
+                                    <small class="text-muted" id="sleep_value"> </small>
                                 </div>
 
                                 <div class="mb-3">
                                     <label for="exercise_minutes" class="form-label">Daily Exercise (minutes)</label>
-                                    <input type="number" class="form-control" id="exercise_minutes" name="exercise_minutes" min="0" max="180" value="30" required>
+                                    <input type="number" class="form-control" id="exercise_minutes" name="exercise_minutes" min="0" max="180" value="" required>
                                 </div>
 
                                 <div class="mb-3">
                                     <label for="hours_worked" class="form-label">Hours Worked Per Week</label>
-                                    <input type="number" class="form-control" id="hours_worked" name="hours_worked" min="0" max="60" value="40" required>
+                                    <input type="number" class="form-control" id="hours_worked" name="hours_worked" min="0" max="80" value="" required>
                                 </div>
 
                                 <div class="mb-3">
                                     <label for="social_interactions" class="form-label">Social Interactions Per Week</label>
-                                    <input type="number" class="form-control" id="social_interactions" name="social_interactions" min="0" max="30" value="5" required>
+                                    <input type="number" class="form-control" id="social_interactions" name="social_interactions" min="0" max="30" value="" required>
                                 </div>
 
                                 <div class="mb-3">
                                     <label for="work_load_score" class="form-label">Workload Score (1=Low, 10=Very High)</label>
-                                    <input type="range" class="form-range" id="work_load_score" name="work_load_score" min="1" max="10" value="5" required>
+                                    <input type="range" class="form-range" id="work_load_score" name="work_load_score" min="1" max="10" value="1" required>
                                     <small class="text-muted" id="workload_value">5</small>
                                 </div>
 
