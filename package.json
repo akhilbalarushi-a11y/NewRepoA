@@ -1,0 +1,21 @@
+{
+  "name": "stress-predictor",
+  "version": "1.0.0",
+  "description": "A machine learning-based stress prediction application",
+  "main": "app.py",
+  "scripts": {
+    "start": "python app.py",
+    "dev": "python app.py",
+    "train": "python train_model.py"
+  },
+  "keywords": [
+    "stress",
+    "prediction",
+    "machine-learning",
+    "flask"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {},
+  "devDependencies": {}
+}
