@@ -1,29 +1,74 @@
 // Stress Predictor Application JavaScript
 
 document.addEventListener('DOMContentLoaded', function() {
-    // Theme Toggle Initialization
-    const themeToggle = document.getElementById('themeToggle');
     const html = document.documentElement;
     
-    // Check for saved theme preference or system preference
-    const savedTheme = localStorage.getItem('theme');
-    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    // ===== PREMIUM THEME SELECTOR =====
+    const themeSelectorBtn = document.getElementById('themeSelectorBtn');
+    const themeDropdown = document.getElementById('themeDropdown');
+    const themeOptions = document.querySelectorAll('.theme-option');
     
-    if (savedTheme === 'dark' || (!savedTheme && prefersDark)) {
-        html.classList.add('dark-mode');
+    // Initialize theme on page load
+    const savedTheme = localStorage.getItem('theme') || 'system';
+    applyTheme(savedTheme);
+    updateActiveTheme(savedTheme);
+    
+    // Theme selector button click
+    if (themeSelectorBtn) {
+        themeSelectorBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            themeDropdown.classList.toggle('active');
+            themeSelectorBtn.classList.toggle('active');
+        });
     }
     
-    // Theme toggle switch click handler
-    themeToggle.addEventListener('click', function() {
-        html.classList.toggle('dark-mode');
-        
-        // Save preference
-        if (html.classList.contains('dark-mode')) {
-            localStorage.setItem('theme', 'dark');
-        } else {
-            localStorage.setItem('theme', 'light');
+    // Theme option selection
+    themeOptions.forEach(option => {
+        option.addEventListener('click', function(e) {
+            e.stopPropagation();
+            const theme = this.getAttribute('data-theme');
+            localStorage.setItem('theme', theme);
+            applyTheme(theme);
+            updateActiveTheme(theme);
+            themeDropdown.classList.remove('active');
+            themeSelectorBtn.classList.remove('active');
+        });
+    });
+    
+    // Close dropdown when clicking outside
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('.theme-selector-container')) {
+            themeDropdown.classList.remove('active');
+            themeSelectorBtn.classList.remove('active');
         }
     });
+    
+    function applyTheme(theme) {
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        
+        if (theme === 'dark') {
+            html.classList.add('dark-mode');
+        } else if (theme === 'light') {
+            html.classList.remove('dark-mode');
+        } else if (theme === 'system') {
+            if (prefersDark) {
+                html.classList.add('dark-mode');
+            } else {
+                html.classList.remove('dark-mode');
+            }
+        }
+    }
+    
+    function updateActiveTheme(theme) {
+        themeOptions.forEach(option => {
+            option.classList.remove('active');
+        });
+        
+        const activeOption = document.querySelector(`.theme-option[data-theme="${theme}"]`);
+        if (activeOption) {
+            activeOption.classList.add('active');
+        }
+    }
 
     const predictionForm = document.getElementById('predictionForm');
     const predictionResultDiv = document.getElementById('predictionResult');
