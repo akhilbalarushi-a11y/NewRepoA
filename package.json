@@ -6,7 +6,8 @@
   "scripts": {
     "start": "python app.py",
     "dev": "python app.py",
-    "train": "python train_model.py"
+    "train": "python train_model.py",
+    "deploy": "git add . && git commit -m 'Deploy: Update to gh-pages' && git push origin gh-pages"
   },
   "keywords": [
     "stress",

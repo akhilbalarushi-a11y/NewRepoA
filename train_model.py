@@ -1,20 +1,25 @@
-# train_model.py
-# This script should be saved in the root directory of your project.
+# train_model.py - Advanced Model Training with Hyperparameter Tuning
+# This script trains multiple ML models with cross-validation and hyperparameter optimization
 
 import pandas as pd
-from sklearn.model_selection import train_test_split
-from sklearn.linear_model import LogisticRegression # Example model
-from sklearn.metrics import accuracy_score, classification_report
+import numpy as np
+from sklearn.model_selection import train_test_split, GridSearchCV, cross_val_score, StratifiedKFold
+from sklearn.preprocessing import StandardScaler
+from sklearn.linear_model import LogisticRegression
+from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
+from sklearn.svm import SVC
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, classification_report, confusion_matrix, roc_auc_score
 import joblib
-import os # Import os module for path manipulation
+import os
+import warnings
+warnings.filterwarnings('ignore')
 
 # --- Configuration ---
 DATA_FILE = 'data/stress_data.csv'
 MODEL_DIR = 'models'
 MODEL_FILE = 'stress_model.pkl'
+SCALER_FILE = 'stress_scaler.pkl'
 
-# Define features (X) and target (y)
-# IMPORTANT: Ensure these names exactly match your CSV column headers!
 FEATURE_NAMES = [
     'sleep_quality',
     'exercise_minutes',
@@ -25,107 +30,280 @@ FEATURE_NAMES = [
 ]
 TARGET_NAME = 'stress_level'
 
-# --- Script Execution ---
+# Advanced Settings
+RANDOM_STATE = 42
+TEST_SIZE = 0.2
+CV_FOLDS = 5
+SCALE_FEATURES = True
+TUNE_HYPERPARAMETERS = True
 
-def train_and_save_model():
-    """
-    Loads data, trains a stress prediction model, and saves it.
-    """
-    print("Starting model training process...")
-
-    # 1. Load your dataset
+def load_and_prepare_data():
+    """Load and prepare data with validation."""
+    print("=" * 60)
+    print("STEP 1: LOADING AND PREPARING DATA")
+    print("=" * 60)
+    
     try:
         df = pd.read_csv(DATA_FILE)
-        print(f"Successfully loaded dataset from '{DATA_FILE}'. Shape: {df.shape}")
+        print(f"✓ Successfully loaded dataset from '{DATA_FILE}'")
+        print(f"  Dataset shape: {df.shape} (rows, columns)")
     except FileNotFoundError:
-        print(f"Error: Dataset file not found at '{DATA_FILE}'.")
-        print("Please ensure 'data/stress_data.csv' exists and contains your data.")
-        return # Exit function if data file is missing
+        print(f"✗ Dataset file not found at '{DATA_FILE}'")
+        return None, None, None, None
     except Exception as e:
-        print(f"An unexpected error occurred while loading '{DATA_FILE}': {e}")
-        return
+        print(f"✗ Error loading dataset: {e}")
+        return None, None, None, None
 
-    # 2. Data Preprocessing and Feature Engineering (Placeholder)
-    # IMPORTANT: Add your actual preprocessing steps here if needed.
-    # For this example, we assume the data is largely ready or simple transformations suffice.
-    # Example:
-    # df['encoded_feature'] = df['categorical_column'].astype('category').cat.codes
-
-    print("Performing basic checks on columns...")
-    # 3. Define features (X) and target (y) and validate columns
+    # Validate columns
     all_required_columns = FEATURE_NAMES + [TARGET_NAME]
     missing_cols = [col for col in all_required_columns if col not in df.columns]
-
+    
     if missing_cols:
-        print(f"Error: The following required columns are missing from '{DATA_FILE}': {missing_cols}")
-        print("Please check your CSV file and ensure all column names match the FEATURE_NAMES and TARGET_NAME variables.")
-        return
+        print(f"✗ Missing columns: {missing_cols}")
+        print(f"  Available columns: {df.columns.tolist()}")
+        return None, None, None, None
 
-    X = df[FEATURE_NAMES]
+    # Handle missing values
+    print(f"\n  Checking for missing values...")
+    missing_values = df[all_required_columns].isnull().sum()
+    if missing_values.sum() > 0:
+        print(f"  Found missing values, dropping rows...")
+        df = df.dropna(subset=all_required_columns)
+        print(f"  New shape after dropping NaN: {df.shape}")
+    
+    X = df[FEATURE_NAMES].astype(float)
     y = df[TARGET_NAME]
-    print("Columns validated. Features and target defined.")
+    
+    print(f"✓ Features shape: {X.shape}")
+    print(f"✓ Target shape: {y.shape}")
+    print(f"✓ Class distribution:\n{y.value_counts()}")
+    
+    return X, y, df, all_required_columns
 
-    # 4. Split data into training and testing sets
-    print("Splitting data into training and testing sets...")
-    # Using stratify=y is recommended for classification to maintain class proportions
+def split_and_scale_data(X, y):
+    """Split data and apply feature scaling."""
+    print("\n" + "=" * 60)
+    print("STEP 2: SPLITTING AND SCALING DATA")
+    print("=" * 60)
+    
     try:
         X_train, X_test, y_train, y_test = train_test_split(
             X, y,
-            test_size=0.2,  # 20% for testing
-            random_state=42, # for reproducibility
-            stratify=y      # ensures class distribution is similar in train/test sets
+            test_size=TEST_SIZE,
+            random_state=RANDOM_STATE,
+            stratify=y
         )
-        print(f"Data split complete. Training set shape: {X_train.shape}, Testing set shape: {X_test.shape}")
+        print(f"✓ Data split complete:")
+        print(f"  Training set: {X_train.shape}")
+        print(f"  Test set: {X_test.shape}")
     except ValueError as ve:
-        print(f"Error during train-test split: {ve}")
-        print("This might happen if your target variable ('stress_level') has too few samples per class.")
-        print("Consider reducing test_size, combining classes, or gathering more data.")
-        return
+        print(f"✗ Error during train-test split: {ve}")
+        return None, None, None, None, None
+    
+    # Feature Scaling
+    scaler = None
+    if SCALE_FEATURES:
+        print(f"\n  Applying StandardScaler to features...")
+        scaler = StandardScaler()
+        X_train_scaled = scaler.fit_transform(X_train)
+        X_test_scaled = scaler.transform(X_test)
+        print(f"✓ Features scaled successfully")
+        return X_train_scaled, X_test_scaled, y_train, y_test, scaler
+    else:
+        return X_train, X_test, y_train, y_test, None
 
-    # 5. Model Training
-    print("Initializing and training the Logistic Regression model...")
-    # Logistic Regression is a good baseline. Choose a model that suits your data complexity.
-    # Higher max_iter might be needed for convergence on some datasets.
-    model = LogisticRegression(max_iter=1000, random_state=42, solver='lbfgs') # Using liblinear for smaller datasets, robust
-
-    try:
+def train_logistic_regression(X_train, X_test, y_train, y_test):
+    """Train Logistic Regression with hyperparameter tuning."""
+    print("\n" + "-" * 60)
+    print("Model 1: Logistic Regression")
+    print("-" * 60)
+    
+    if TUNE_HYPERPARAMETERS:
+        param_grid = {
+            'C': [0.001, 0.01, 0.1, 1, 10, 100],
+            'solver': ['lbfgs', 'liblinear'],
+            'max_iter': [500, 1000, 2000]
+        }
+        
+        lr = LogisticRegression(random_state=RANDOM_STATE)
+        grid_search = GridSearchCV(
+            lr, param_grid, cv=CV_FOLDS, 
+            scoring='f1_weighted', n_jobs=-1, verbose=1
+        )
+        grid_search.fit(X_train, y_train)
+        
+        print(f"✓ Best parameters: {grid_search.best_params_}")
+        print(f"✓ Best CV score: {grid_search.best_score_:.4f}")
+        model = grid_search.best_estimator_
+    else:
+        model = LogisticRegression(max_iter=1000, random_state=RANDOM_STATE)
         model.fit(X_train, y_train)
-        print("Model training completed successfully.")
-    except Exception as e:
-        print(f"An error occurred during model training: {e}")
-        return
+    
+    return model, evaluate_model(model, X_test, y_test, "Logistic Regression")
 
-    # 6. Model Evaluation (Optional but Recommended)
-    print("\n--- Model Evaluation ---")
+def train_random_forest(X_train, X_test, y_train, y_test):
+    """Train Random Forest with hyperparameter tuning."""
+    print("\n" + "-" * 60)
+    print("Model 2: Random Forest Classifier")
+    print("-" * 60)
+    
+    if TUNE_HYPERPARAMETERS:
+        param_grid = {
+            'n_estimators': [100, 200, 300],
+            'max_depth': [10, 15, 20, None],
+            'min_samples_split': [2, 5, 10],
+            'min_samples_leaf': [1, 2, 4]
+        }
+        
+        rf = RandomForestClassifier(random_state=RANDOM_STATE, n_jobs=-1)
+        grid_search = GridSearchCV(
+            rf, param_grid, cv=CV_FOLDS,
+            scoring='f1_weighted', n_jobs=-1, verbose=1
+        )
+        grid_search.fit(X_train, y_train)
+        
+        print(f"✓ Best parameters: {grid_search.best_params_}")
+        print(f"✓ Best CV score: {grid_search.best_score_:.4f}")
+        model = grid_search.best_estimator_
+    else:
+        model = RandomForestClassifier(n_estimators=200, max_depth=15, random_state=RANDOM_STATE, n_jobs=-1)
+        model.fit(X_train, y_train)
+    
+    return model, evaluate_model(model, X_test, y_test, "Random Forest")
+
+def train_gradient_boosting(X_train, X_test, y_train, y_test):
+    """Train Gradient Boosting with hyperparameter tuning."""
+    print("\n" + "-" * 60)
+    print("Model 3: Gradient Boosting Classifier")
+    print("-" * 60)
+    
+    if TUNE_HYPERPARAMETERS:
+        param_grid = {
+            'n_estimators': [100, 200, 300],
+            'learning_rate': [0.01, 0.05, 0.1],
+            'max_depth': [3, 5, 7],
+            'subsample': [0.8, 0.9, 1.0]
+        }
+        
+        gb = GradientBoostingClassifier(random_state=RANDOM_STATE)
+        grid_search = GridSearchCV(
+            gb, param_grid, cv=CV_FOLDS,
+            scoring='f1_weighted', n_jobs=-1, verbose=1
+        )
+        grid_search.fit(X_train, y_train)
+        
+        print(f"✓ Best parameters: {grid_search.best_params_}")
+        print(f"✓ Best CV score: {grid_search.best_score_:.4f}")
+        model = grid_search.best_estimator_
+    else:
+        model = GradientBoostingClassifier(n_estimators=200, learning_rate=0.1, max_depth=5, random_state=RANDOM_STATE)
+        model.fit(X_train, y_train)
+    
+    return model, evaluate_model(model, X_test, y_test, "Gradient Boosting")
+
+def evaluate_model(model, X_test, y_test, model_name):
+    """Comprehensive model evaluation."""
+    y_pred = model.predict(X_test)
+    
+    accuracy = accuracy_score(y_test, y_pred)
+    precision = precision_score(y_test, y_pred, average='weighted', zero_division=0)
+    recall = recall_score(y_test, y_pred, average='weighted', zero_division=0)
+    f1 = f1_score(y_test, y_pred, average='weighted', zero_division=0)
+    
+    print(f"\n✓ {model_name} Evaluation:")
+    print(f"  Accuracy:  {accuracy:.4f}")
+    print(f"  Precision: {precision:.4f}")
+    print(f"  Recall:    {recall:.4f}")
+    print(f"  F1-Score:  {f1:.4f}")
+    
+    return {
+        'model': model,
+        'accuracy': accuracy,
+        'precision': precision,
+        'recall': recall,
+        'f1': f1,
+        'name': model_name
+    }
+
+def save_model(model, scaler):
+    """Save trained model and scaler."""
+    print("\n" + "=" * 60)
+    print("STEP 3: SAVING MODEL AND SCALER")
+    print("=" * 60)
+    
     try:
-        y_pred = model.predict(X_test)
-        accuracy = accuracy_score(y_test, y_pred)
-        print(f"Accuracy on the test set: {accuracy:.4f}")
-
-        # Detailed report for classification
-        print("\nClassification Report:")
-        print(classification_report(y_test, y_pred, zero_division=0)) # zero_division handles classes with no predictions
-    except Exception as e:
-        print(f"An error occurred during model evaluation: {e}")
-
-    # 7. Save the trained model
-    print(f"\nSaving the trained model to '{os.path.join(MODEL_DIR, MODEL_FILE)}'...")
-    try:
-        # Create the models directory if it doesn't exist
         os.makedirs(MODEL_DIR, exist_ok=True)
-
-        # Use joblib to save the model
+        
+        # Save model
         joblib.dump(model, os.path.join(MODEL_DIR, MODEL_FILE))
-        print(f"Model successfully saved to '{os.path.join(MODEL_DIR, MODEL_FILE)}'")
+        print(f"✓ Model saved to '{os.path.join(MODEL_DIR, MODEL_FILE)}'")
+        
+        # Save scaler if used
+        if scaler is not None:
+            joblib.dump(scaler, os.path.join(MODEL_DIR, SCALER_FILE))
+            print(f"✓ Scaler saved to '{os.path.join(MODEL_DIR, SCALER_FILE)}'")
+            
     except Exception as e:
-        print(f"Error saving model to '{os.path.join(MODEL_DIR, MODEL_FILE)}': {e}")
+        print(f"✗ Error saving model: {e}")
 
-    # 8. Provide feedback on feature names for Flask
-    print("\n--- Next Steps ---")
-    print("INFO: The following feature names were used for training:")
-    print(FEATURE_NAMES)
-    print("Please ensure these exact names are also used in 'app.py' and your HTML form.")
-    print("------------------")
+def main():
+    """Main training pipeline."""
+    print("\n")
+    print("╔" + "=" * 58 + "╗")
+    print("║" + " " * 10 + "ADVANCED STRESS PREDICTION MODEL TRAINING" + " " * 7 + "║")
+    print("╚" + "=" * 58 + "╝")
+    
+    # Load data
+    X, y, df, _ = load_and_prepare_data()
+    if X is None:
+        return
+    
+    # Split and scale
+    X_train, X_test, y_train, y_test, scaler = split_and_scale_data(X, y)
+    if X_train is None:
+        return
+    
+    # Train multiple models
+    print("\n" + "=" * 60)
+    print("STEP 3: TRAINING MODELS WITH ADVANCED SETTINGS")
+    print("=" * 60)
+    
+    models_results = []
+    
+    # Logistic Regression
+    lr_model, lr_results = train_logistic_regression(X_train, X_test, y_train, y_test)
+    models_results.append(lr_results)
+    
+    # Random Forest
+    rf_model, rf_results = train_random_forest(X_train, X_test, y_train, y_test)
+    models_results.append(rf_results)
+    
+    # Gradient Boosting
+    gb_model, gb_results = train_gradient_boosting(X_train, X_test, y_train, y_test)
+    models_results.append(gb_results)
+    
+    # Select best model
+    print("\n" + "=" * 60)
+    print("STEP 4: MODEL COMPARISON AND SELECTION")
+    print("=" * 60)
+    
+    best_result = max(models_results, key=lambda x: x['f1'])
+    print(f"\n✓ Best Model: {best_result['name']}")
+    print(f"  F1-Score: {best_result['f1']:.4f}")
+    print(f"  Accuracy: {best_result['accuracy']:.4f}")
+    
+    # Save best model
+    save_model(best_result['model'], scaler)
+    
+    # Final summary
+    print("\n" + "=" * 60)
+    print("TRAINING COMPLETE - ADVANCED MODEL READY")
+    print("=" * 60)
+    print(f"\n✓ Features used: {FEATURE_NAMES}")
+    print(f"✓ Feature scaling: {'Enabled' if SCALE_FEATURES else 'Disabled'}")
+    print(f"✓ Hyperparameter tuning: {'Enabled' if TUNE_HYPERPARAMETERS else 'Disabled'}")
+    print(f"✓ Cross-validation folds: {CV_FOLDS}")
+    print("\nModel is ready for deployment in app.py!\n")
 
 if __name__ == '__main__':
-    train_and_save_model()
+    main()

@@ -31,10 +31,10 @@ body {
     letter-spacing: 0.5px;
 }
 
-/* Theme Toggle Button */
+/* Theme Toggle Button - Transparent Design */
 .theme-toggle-btn {
-    background: rgba(255, 255, 255, 0.2);
-    border: 2px solid rgba(255, 255, 255, 0.3);
+    background: transparent;
+    border: none;
     border-radius: 50%;
     width: 45px;
     height: 45px;
@@ -42,16 +42,17 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 1.2rem;
+    font-size: 1.5rem;
     transition: all 0.3s ease;
     position: relative;
     overflow: hidden;
+    padding: 0;
 }
 
 .theme-toggle-btn:hover {
-    background: rgba(255, 255, 255, 0.3);
-    border-color: rgba(255, 255, 255, 0.5);
-    transform: scale(1.1);
+    background: rgba(255, 255, 255, 0.1);
+    transform: scale(1.15) rotate(20deg);
+    border-radius: 50%;
 }
 
 .theme-toggle-btn .sun-icon,
@@ -112,6 +113,22 @@ html.dark-mode .nav-link:hover {
 
 html.dark-mode .hero-section {
     background: linear-gradient(135deg, #1a3a52 0%, #0d1f2d 100%);
+}
+
+html.dark-mode .stat-item {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.15);
+}
+
+html.dark-mode .hero-section .btn-light {
+    background: rgba(255, 255, 255, 0.15);
+    color: #fff;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+html.dark-mode .hero-section .btn-light:hover {
+    background: rgba(255, 255, 255, 0.25);
+    border-color: rgba(255, 255, 255, 0.4);
 }
 
 html.dark-mode section {
@@ -197,19 +214,75 @@ html.dark-mode .small {
 .hero-section {
     background: linear-gradient(135deg, var(--primary-color) 0%, #0056b3 100%);
     color: white;
-    padding: 80px 0 !important;
+    padding: 100px 0 !important;
     text-align: center;
+    position: relative;
+    overflow: hidden;
+}
+
+.hero-section::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: radial-gradient(circle at 20% 50%, rgba(255,255,255,0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(255,255,255,0.05) 0%, transparent 50%);
+    pointer-events: none;
+}
+
+.hero-content {
+    position: relative;
+    z-index: 1;
 }
 
 .hero-section h1 {
     color: white;
     font-weight: 700;
     margin-bottom: 1rem;
+    font-size: 3.5rem !important;
+    letter-spacing: -1px;
 }
 
 .hero-section p {
-    color: rgba(255, 255, 255, 0.9);
-    font-size: 1.2rem;
+    color: rgba(255, 255, 255, 0.95);
+    font-size: 1.25rem;
+    margin-bottom: 1.5rem;
+}
+
+.hero-stats {
+    display: flex;
+    justify-content: center;
+    gap: 2rem;
+    flex-wrap: wrap;
+    margin-bottom: 2rem;
+}
+
+.stat-item {
+    background: rgba(255, 255, 255, 0.15);
+    padding: 0.75rem 1.5rem;
+    border-radius: 30px;
+    font-weight: 500;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    font-size: 0.95rem;
+}
+
+.hero-section .btn-light {
+    background: white;
+    color: var(--primary-color);
+    padding: 1rem 2.5rem;
+    font-size: 1.1rem;
+    border-radius: 50px;
+    transition: all 0.3s ease;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+}
+
+.hero-section .btn-light:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3);
+    background: rgba(255, 255, 255, 0.95);
 }
 
 .hero-section .btn {
@@ -380,6 +453,31 @@ footer a:hover {
     width: 30px;
     height: 30px;
     animation: spin 1s linear infinite;
+}
+
+/* Progress Bar Styling */
+.progress {
+    background-color: #f0f0f0;
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.progress-bar {
+    background: linear-gradient(90deg, var(--primary-color) 0%, #0056b3 100%);
+    color: white;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: width 0.6s ease;
+}
+
+html.dark-mode .progress {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+html.dark-mode .progress-bar {
+    background: linear-gradient(90deg, #4a9eff 0%, #0056b3 100%);
 }
 
 @keyframes spin {

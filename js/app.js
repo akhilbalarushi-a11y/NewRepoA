@@ -84,17 +84,18 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 if (response.ok) {
                     const result = await response.json();
-                    displayPrediction(result.prediction);
+                    // Handle both string prediction (from API) and raw value
+                    displayPrediction(result.raw_value, result.prediction, result.confidence || 0);
                 } else {
                     // Fallback to local prediction if backend fails
                     const localPrediction = calculateLocalPrediction(data);
-                    displayPrediction(localPrediction);
+                    displayPrediction(localPrediction, null, 0);
                 }
             } catch (error) {
                 // Backend not available, use local prediction
                 console.log('Backend not available, using local prediction model');
                 const localPrediction = calculateLocalPrediction(data);
-                displayPrediction(localPrediction);
+                displayPrediction(localPrediction, null, 0);
             }
 
         } catch (error) {
@@ -136,27 +137,46 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Display prediction results
-    function displayPrediction(prediction) {
+    function displayPrediction(prediction, predictionText = null, confidence = 0) {
         let stressDescription = '';
         let badgeClass = '';
         let emoji = '';
 
-        switch (prediction) {
-            case 0:
-                stressDescription = '✅ Low Stress';
+        // If predictionText is provided from API, use it; otherwise map from prediction value
+        if (predictionText) {
+            stressDescription = predictionText;
+            // Extract emoji and description from prediction text
+            if (predictionText.includes('Low')) {
                 badgeClass = 'bg-success';
                 emoji = '😊';
-                break;
-            case 1:
-                stressDescription = '⚠️ Moderate Stress';
+            } else if (predictionText.includes('Moderate')) {
                 badgeClass = 'bg-warning';
                 emoji = '😐';
-                break;
-            case 2:
-            default:
-                stressDescription = '🚨 High Stress';
+            } else if (predictionText.includes('High')) {
                 badgeClass = 'bg-danger';
                 emoji = '😟';
+            } else {
+                badgeClass = 'bg-danger';
+                emoji = '😟';
+            }
+        } else {
+            switch (prediction) {
+                case 0:
+                    stressDescription = '✅ Low Stress';
+                    badgeClass = 'bg-success';
+                    emoji = '😊';
+                    break;
+                case 1:
+                    stressDescription = '⚠️ Moderate Stress';
+                    badgeClass = 'bg-warning';
+                    emoji = '😐';
+                    break;
+                case 2:
+                default:
+                    stressDescription = '🚨 High Stress';
+                    badgeClass = 'bg-danger';
+                    emoji = '😟';
+            }
         }
 
         stressLevelSpan.textContent = stressDescription;
@@ -164,12 +184,24 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Add recommendations
         const recommendations = getRecommendations(prediction);
+        const confidenceDisplay = confidence > 0 ? `
+            <div class="mt-3">
+                <strong>Model Confidence:</strong>
+                <div class="progress mt-2" style="height: 25px;">
+                    <div class="progress-bar" role="progressbar" style="width: ${confidence}%" aria-valuenow="${confidence}" aria-valuemin="0" aria-valuemax="100">
+                        ${confidence.toFixed(1)}%
+                    </div>
+                </div>
+            </div>
+        ` : '';
+
         const resultHTML = `
             <h4 class="alert-heading">${emoji} Stress Assessment Results</h4>
             <p class="mb-3"><strong>Your Predicted Stress Level:</strong></p>
             <div class="stress-badge">
                 <span class="badge ${badgeClass} p-3 fs-5">${stressDescription}</span>
             </div>
+            ${confidenceDisplay}
             <hr>
             <div class="mt-3">
                 <h6>Recommendations:</h6>
