@@ -1,16 +1,16 @@
 # app.py
-from flask import Flask, render_template, request, jsonify
-import pandas as pd
-import numpy as np
-import joblib  # For loading the scikit-learn model
+
 import os
+import joblib
+import pandas as pd
+import numpy as np # Often imported for data manipulation, even if not explicitly used
+from flask import Flask, request, jsonify, render_template
 
-app = Flask(__name__)
-
-# Load the trained model and scaler
-model = None
-scaler = None
-feature_names = [
+# --- Configuration ---
+MODEL_DIR = 'models'
+MODEL_FILE = 'stress_model.pkl'
+# Ensure these feature names EXACTLY match what was used to train the model
+FEATURE_NAMES = [
     'sleep_quality',
     'exercise_minutes',
     'hours_worked',
@@ -18,107 +18,93 @@ feature_names = [
     'work_load_score',
     'heart_rate'
 ]
+# --- Flask Application Setup ---
+app = Flask(__name__)
 
-try:
-    # Try to load model
-    if os.path.exists('models/stress_model.pkl'):
-        model = joblib.load('models/stress_model.pkl')
-        print("✓ Model loaded successfully")
-    else:
-        print("⚠ Model file not found. Please train your model first.")
+# --- Helper function to load model and features ---
+def load_model_and_features():
+    """Loads the trained model and defines expected feature names."""
+    model_path = os.path.join(MODEL_DIR, MODEL_FILE)
+    if not os.path.exists(model_path):
+        raise FileNotFoundError(f"Model file not found at {model_path}. Please run train_model.py first.")
     
-    # Try to load scaler if it exists (from advanced training)
-    if os.path.exists('models/stress_scaler.pkl'):
-        scaler = joblib.load('models/stress_scaler.pkl')
-        print("✓ Scaler loaded successfully (using advanced model)")
-    else:
-        print("⚠ Scaler not found (using basic model)")
-        
-except Exception as e:
-    print(f"✗ Error loading model/scaler: {e}")
+    model = joblib.load(model_path)
+    print(f"Model loaded successfully from {model_path}")
+    return model, FEATURE_NAMES
 
+# Load model and features when the app starts
+try:
+    model, feature_names_for_prediction = load_model_and_features()
+except FileNotFoundError as e:
+    print(f"Error loading model: {e}")
+    # In a real app, you might want to handle this more gracefully (e.g., return an error page)
+    model = None # Ensure model is None if loading failed
+    feature_names_for_prediction = []
+except Exception as e:
+    print(f"An unexpected error occurred during model loading: {e}")
+    model = None
+    feature_names_for_prediction = []
+
+# --- Routes ---
 @app.route('/')
 def index():
-    return render_template('index.html')
+    """Renders the main prediction form."""
+    return render_template('index.html', feature_names_for_display=FEATURE_NAMES) # Pass feature names for potential dynamic labels
 
 @app.route('/predict', methods=['POST'])
 def predict():
-    if not model:
-        return jsonify({'error': 'Model not loaded. Please train your model first.'}), 503
+    """Handles prediction requests."""
+    if model is None:
+        return jsonify({'error': 'Model not loaded. Please check server logs.'}), 500
 
     try:
-        data = request.get_json()
+        data_received = request.get_json()
+        if not data_received:
+            return jsonify({'error': 'Invalid JSON received.'}), 400
+
+        # Create a list of feature values in the correct order
+        # Ensure the keys in data_received match your HTML form's 'name' attributes
+        # and the order matches feature_names_for_prediction
+        input_data_list = []
+        for feature in feature_names_for_prediction:
+            if feature in data_received:
+                # Convert to float, handling potential errors
+                try:
+                    value = float(data_received[feature])
+                    input_data_list.append(value)
+                except (ValueError, TypeError):
+                    return jsonify({'error': f"Invalid input for {feature}. Please provide a number."}), 400
+            else:
+                # This should ideally not happen if HTML form names match FEATURE_NAMES
+                return jsonify({'error': f"Missing feature in input data: {feature}"}), 400
         
-        # Treat missing sleep_quality / work_load_score as “rest/normal” defaults
-        sleep_default = 4  # normal/rest range (1-8)
-        workload_default = 5  # normal/rest range (1-10)
-
-        data = data or {}
-        if data.get('sleep_quality') is None:
-            data['sleep_quality'] = sleep_default
-        if data.get('work_load_score') is None:
-            data['work_load_score'] = workload_default
-
-        # Extract features from the JSON data and ensure correct order
-        input_features = [float(data.get(feature, 0)) for feature in feature_names]
-
-        # Validate remaining features: if a feature is absent (null), reject
-        # (exercise_minutes/hours_worked/social_interactions/heart_rate must be provided)
-        required_except_defaults = [
-            'exercise_minutes',
-            'hours_worked',
-            'social_interactions',
-            'heart_rate'
-        ]
-        missing = [f for f in required_except_defaults if data.get(f) is None]
-        if missing:
-            return jsonify({'error': f'Missing features: {", ".join(missing)}'}), 400
-
-
-        # Convert to DataFrame suitable for the model
-        input_df = pd.DataFrame([input_features], columns=feature_names)
-        
-        # Apply scaler if available (advanced model)
-        if scaler is not None:
-            input_scaled = scaler.transform(input_df)
-            input_df_model = pd.DataFrame(input_scaled, columns=feature_names)
-        else:
-            input_df_model = input_df
+        # Convert the list to a numpy array (or pandas DataFrame row) for prediction
+        # Model expects a 2D array/DataFrame
+        input_array = np.array(input_data_list).reshape(1, -1) # Reshape for single prediction
 
         # Make prediction
-        prediction = model.predict(input_df_model)
-        
-        # Get prediction probability if available
-        try:
-            prediction_proba = model.predict_proba(input_df_model)
-            confidence = float(max(prediction_proba[0])) * 100
-        except:
-            confidence = 0
+        prediction = model.predict(input_array)
+        predicted_stress_level = int(prediction[0]) # Get the scalar prediction
 
-        prediction_value = int(prediction[0])
-
-        # Map prediction to user-friendly stress level
-        stress_levels = {
-            0: "Low Stress",
-            1: "Moderate Stress", 
-            2: "High Stress",
-            3: "Very High Stress"
-        }
-        
-        stress_level = stress_levels.get(prediction_value, f"Stress Level: {prediction_value}")
+        # Map numerical prediction to a human-readable label
+        stress_level_map = {0: "Low Stress", 1: "Moderate Stress", 2: "High Stress"}
+        stress_label = stress_level_map.get(predicted_stress_level, "Unknown Stress Level")
 
         return jsonify({
-            'prediction': stress_level,
-            'confidence': confidence,
-            'raw_value': prediction_value
+            'prediction': predicted_stress_level,
+            'stress_label': stress_label
         })
 
-        return jsonify({'prediction': prediction_value})
-
     except Exception as e:
-        print(f"Prediction error: {e}")
-        return jsonify({'error': 'An error occurred during prediction'}), 500
+        print(f"An error occurred during prediction: {e}")
+        # Log the full error for debugging
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': 'An internal server error occurred during prediction.'}), 500
 
+# --- Main execution ---
 if __name__ == '__main__':
-    # Debug=True is useful for development, but set to False for production
+    # Set debug=True for development, it will automatically reload the server
+    # when you save changes to the Python files.
+    # For production, set debug=False and use a proper WSGI server like Gunicorn.
     app.run(debug=True)
