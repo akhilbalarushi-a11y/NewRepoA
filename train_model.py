@@ -1,17 +1,31 @@
+#!/usr/bin/env python3
 # train_model.py - Advanced Model Training with Hyperparameter Tuning
-# This script trains multiple ML models with cross-validation and hyperparameter optimization
 
 import pandas as pd
 import numpy as np
-from sklearn.model_selection import train_test_split, GridSearchCV, cross_val_score, StratifiedKFold
+from sklearn.model_selection import (
+    train_test_split,
+    GridSearchCV,
+    cross_val_score,
+    StratifiedKFold
+)
 from sklearn.preprocessing import StandardScaler
 from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
 from sklearn.svm import SVC
-from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, classification_report, confusion_matrix, roc_auc_score
+from sklearn.metrics import (
+    accuracy_score,
+    precision_score,
+    recall_score,
+    f1_score,
+    classification_report,
+    confusion_matrix,
+    roc_auc_score
+)
 import joblib
 import os
 import warnings
+
 warnings.filterwarnings('ignore')
 
 # --- Configuration ---
@@ -20,6 +34,7 @@ MODEL_DIR = 'models'
 MODEL_FILE = 'stress_model.pkl'
 SCALER_FILE = 'stress_scaler.pkl'
 
+# IMPORTANT: Ensure these column names match your CSV headers exactly.
 FEATURE_NAMES = [
     'sleep_quality',
     'exercise_minutes',
@@ -112,6 +127,30 @@ def split_and_scale_data(X, y):
     else:
         return X_train, X_test, y_train, y_test, None
 
+def evaluate_model(model, X_test, y_test, model_name):
+    """Comprehensive model evaluation."""
+    y_pred = model.predict(X_test)
+    
+    accuracy = accuracy_score(y_test, y_pred)
+    precision = precision_score(y_test, y_pred, average='weighted', zero_division=0)
+    recall = recall_score(y_test, y_pred, average='weighted', zero_division=0)
+    f1 = f1_score(y_test, y_pred, average='weighted', zero_division=0)
+    
+    print(f"\n✓ {model_name} Evaluation:")
+    print(f"  Accuracy:  {accuracy:.4f}")
+    print(f"  Precision: {precision:.4f}")
+    print(f"  Recall:    {recall:.4f}")
+    print(f"  F1-Score:  {f1:.4f}")
+    
+    return {
+        'model': model,
+        'accuracy': accuracy,
+        'precision': precision,
+        'recall': recall,
+        'f1': f1,
+        'name': model_name
+    }
+
 def train_logistic_regression(X_train, X_test, y_train, y_test):
     """Train Logistic Regression with hyperparameter tuning."""
     print("\n" + "-" * 60)
@@ -119,15 +158,19 @@ def train_logistic_regression(X_train, X_test, y_train, y_test):
     print("-" * 60)
     
     if TUNE_HYPERPARAMETERS:
+        # Be mindful of solver compatibility with multiclass; use multinomial for multiclass.
         param_grid = {
             'C': [0.001, 0.01, 0.1, 1, 10, 100],
-            'solver': ['lbfgs', 'liblinear'],
-            'max_iter': [500, 1000, 2000]
+            'solver': ['lbfgs', 'saga'],
+            'max_iter': [500, 1000, 2000],
+            'multi_class': ['multinomial']
         }
         
-        lr = LogisticRegression(random_state=RANDOM_STATE)
+        lr = LogisticRegression(random_state=RANDOM_STATE, n_jobs=-1)
+        # Use a stratified split for CV to preserve class distribution
+        cv = StratifiedKFold(n_splits=CV_FOLDS, shuffle=True, random_state=RANDOM_STATE)
         grid_search = GridSearchCV(
-            lr, param_grid, cv=CV_FOLDS, 
+            lr, param_grid, cv=cv,
             scoring='f1_weighted', n_jobs=-1, verbose=1
         )
         grid_search.fit(X_train, y_train)
@@ -136,7 +179,7 @@ def train_logistic_regression(X_train, X_test, y_train, y_test):
         print(f"✓ Best CV score: {grid_search.best_score_:.4f}")
         model = grid_search.best_estimator_
     else:
-        model = LogisticRegression(max_iter=1000, random_state=RANDOM_STATE)
+        model = LogisticRegression(max_iter=1000, random_state=RANDOM_STATE, multi_class='multinomial')
         model.fit(X_train, y_train)
     
     return model, evaluate_model(model, X_test, y_test, "Logistic Regression")
@@ -156,8 +199,9 @@ def train_random_forest(X_train, X_test, y_train, y_test):
         }
         
         rf = RandomForestClassifier(random_state=RANDOM_STATE, n_jobs=-1)
+        cv = StratifiedKFold(n_splits=CV_FOLDS, shuffle=True, random_state=RANDOM_STATE)
         grid_search = GridSearchCV(
-            rf, param_grid, cv=CV_FOLDS,
+            rf, param_grid, cv=cv,
             scoring='f1_weighted', n_jobs=-1, verbose=1
         )
         grid_search.fit(X_train, y_train)
@@ -186,8 +230,9 @@ def train_gradient_boosting(X_train, X_test, y_train, y_test):
         }
         
         gb = GradientBoostingClassifier(random_state=RANDOM_STATE)
+        cv = StratifiedKFold(n_splits=CV_FOLDS, shuffle=True, random_state=RANDOM_STATE)
         grid_search = GridSearchCV(
-            gb, param_grid, cv=CV_FOLDS,
+            gb, param_grid, cv=cv,
             scoring='f1_weighted', n_jobs=-1, verbose=1
         )
         grid_search.fit(X_train, y_train)
@@ -200,30 +245,6 @@ def train_gradient_boosting(X_train, X_test, y_train, y_test):
         model.fit(X_train, y_train)
     
     return model, evaluate_model(model, X_test, y_test, "Gradient Boosting")
-
-def evaluate_model(model, X_test, y_test, model_name):
-    """Comprehensive model evaluation."""
-    y_pred = model.predict(X_test)
-    
-    accuracy = accuracy_score(y_test, y_pred)
-    precision = precision_score(y_test, y_pred, average='weighted', zero_division=0)
-    recall = recall_score(y_test, y_pred, average='weighted', zero_division=0)
-    f1 = f1_score(y_test, y_pred, average='weighted', zero_division=0)
-    
-    print(f"\n✓ {model_name} Evaluation:")
-    print(f"  Accuracy:  {accuracy:.4f}")
-    print(f"  Precision: {precision:.4f}")
-    print(f"  Recall:    {recall:.4f}")
-    print(f"  F1-Score:  {f1:.4f}")
-    
-    return {
-        'model': model,
-        'accuracy': accuracy,
-        'precision': precision,
-        'recall': recall,
-        'f1': f1,
-        'name': model_name
-    }
 
 def save_model(model, scaler):
     """Save trained model and scaler."""
