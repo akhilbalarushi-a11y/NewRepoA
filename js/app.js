@@ -8,10 +8,24 @@ document.addEventListener('DOMContentLoaded', function() {
     const moonIcon = themeToggleBtn ? themeToggleBtn.querySelector('.moon') : null;
     const sunIcon = themeToggleBtn ? themeToggleBtn.querySelector('.sun') : null;
 
-    // Initialize theme on page load (no 'system' option per request)
-    const savedTheme = localStorage.getItem('theme') || 'light';
-    applyTheme(savedTheme);
-    updateToggleIcon(savedTheme);
+    // Theme system configuration (emulates next-themes behavior)
+    const storageKey = 'theme';
+    const defaultTheme = 'light';
+    const enableSystem = true; // respects system preference when no saved choice
+
+    const stored = localStorage.getItem(storageKey);
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    let initialTheme;
+    if (stored) {
+        initialTheme = stored;
+    } else if (enableSystem) {
+        initialTheme = prefersDark ? 'dark' : defaultTheme;
+    } else {
+        initialTheme = defaultTheme;
+    }
+
+    applyTheme(initialTheme);
+    updateToggleIcon(initialTheme);
 
     if (themeToggleBtn) {
         themeToggleBtn.addEventListener('click', function(e) {
@@ -25,10 +39,13 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     function applyTheme(theme) {
+        // Keep backward-compatible class and add data-theme attribute
         if (theme === 'dark') {
             html.classList.add('dark-mode');
+            html.setAttribute('data-theme', 'dark');
         } else {
             html.classList.remove('dark-mode');
+            html.setAttribute('data-theme', 'light');
         }
     }
 
