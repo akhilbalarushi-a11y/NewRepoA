@@ -37,15 +37,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const errorMessageDiv = document.getElementById('errorMessage');
     const errorTextP = document.getElementById('errorText');
 
-    // Update slider values in real-time
-    sleepSlider.addEventListener('input', function() {
-        sleepValue.textContent = this.value;
-    });
-
-    workloadSlider.addEventListener('input', function() {
-        workloadValue.textContent = this.value;
-    });
-
     // Form submission handler
     predictionForm.addEventListener('submit', async function(event) {
         event.preventDefault();
@@ -58,29 +49,28 @@ document.addEventListener('DOMContentLoaded', function() {
             // Collect form data
             const formData = new FormData(predictionForm);
             const data = {
-                sleep_quality: parseFloat(formData.get('sleep_quality')),
-                exercise_minutes: parseFloat(formData.get('exercise_minutes')),
-                hours_worked: parseFloat(formData.get('hours_worked')),
-                social_interactions: parseFloat(formData.get('social_interactions')),
-                work_load_score: parseFloat(formData.get('work_load_score')),
-                heart_rate: parseFloat(formData.get('heart_rate'))
+                sleep_quality: parseFloat(formData.get('sleep_quality')) || 4,
+                exercise_minutes: parseFloat(formData.get('exercise_minutes')) || 0,
+                hours_worked: parseFloat(formData.get('hours_worked')) || 0,
+                social_interactions: parseFloat(formData.get('social_interactions')) || 0,
+                work_load_score: parseFloat(formData.get('work_load_score')) || 5,
+                heart_rate: parseFloat(formData.get('heart_rate')) || 70
             };
 
-            // Validate data
-            // sleep_quality / work_load_score are optional and will be treated as normal/rest.
+            // Validate data - ensure all values are valid numbers
             if (Object.values(data).some(val => isNaN(val))) {
-                // allow missing sleep_quality / work_load_score
-                if (isNaN(data.sleep_quality) && isNaN(data.work_load_score)) {
-                    data.sleep_quality = 4;
-                    data.work_load_score = 5;
-                } else if (isNaN(data.sleep_quality)) {
-                    data.sleep_quality = 4;
-                } else if (isNaN(data.work_load_score)) {
-                    data.work_load_score = 5;
-                } else {
-                    showError('Please enter valid numbers for all required fields.');
-                    return;
-                }
+                showError('Please enter valid numbers for all fields.');
+                return;
+            }
+
+            // Validate ranges
+            if (data.sleep_quality < 1 || data.sleep_quality > 8) {
+                showError('Sleep Quality must be between 1 and 8');
+                return;
+            }
+            if (data.work_load_score < 1 || data.work_load_score > 10) {
+                showError('Workload Score must be between 1 and 10');
+                return;
             }
 
 
