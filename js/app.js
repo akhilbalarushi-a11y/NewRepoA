@@ -11,13 +11,11 @@ document.addEventListener('DOMContentLoaded', function() {
     
     if (savedTheme === 'dark' || (!savedTheme && prefersDark)) {
         html.classList.add('dark-mode');
-        themeToggle.classList.add('dark');
     }
     
-    // Theme toggle button click handler
+    // Theme toggle switch click handler
     themeToggle.addEventListener('click', function() {
         html.classList.toggle('dark-mode');
-        themeToggle.classList.toggle('dark');
         
         // Save preference
         if (html.classList.contains('dark-mode')) {
@@ -28,10 +26,6 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     const predictionForm = document.getElementById('predictionForm');
-    const sleepSlider = document.getElementById('sleep_quality');
-    const workloadSlider = document.getElementById('work_load_score');
-    const sleepValue = document.getElementById('sleep_value');
-    const workloadValue = document.getElementById('workload_value');
     const predictionResultDiv = document.getElementById('predictionResult');
     const stressLevelSpan = document.getElementById('stressLevel');
     const errorMessageDiv = document.getElementById('errorMessage');
