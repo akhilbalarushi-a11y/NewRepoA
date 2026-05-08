@@ -21,36 +21,13 @@
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto">
-                    <!-- Premium Theme Selector -->
+                    <!-- Transparent Theme Toggle (Light / Dark) -->
                     <li class="nav-item me-3 d-flex align-items-center">
-                        <div class="theme-selector-container">
-                            <div class="theme-selector-button" id="themeSelectorBtn">
-                                <div class="theme-label">
-                                    <span class="theme-icon">🌓</span>
-                                    <span class="theme-text">Theme</span>
-                                </div>
-                                <div class="theme-dropdown-arrow">
-                                    <svg class="arrow-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <polyline points="6 9 12 15 18 9"></polyline>
-                                    </svg>
-                                </div>
-                            </div>
-                            
-                            <!-- Theme Options Dropdown -->
-                            <div class="theme-dropdown" id="themeDropdown">
-                                <div class="theme-option system-option" data-theme="system">
-                                    <span class="option-icon">⚙️</span>
-                                    <span class="option-text">System</span>
-                                </div>
-                                <div class="theme-option light-option" data-theme="light">
-                                    <span class="option-icon">☀️</span>
-                                    <span class="option-text">Light</span>
-                                </div>
-                                <div class="theme-option dark-option" data-theme="dark">
-                                    <span class="option-icon">🌙</span>
-                                    <span class="option-text">Dark</span>
-                                </div>
-                            </div>
+                        <div class="theme-toggle-container">
+                            <button class="theme-toggle-button" id="themeToggleBtn" aria-label="Toggle theme">
+                                <span class="theme-toggle-icon moon">🌙</span>
+                                <span class="theme-toggle-icon sun" style="display:none;">☀️</span>
+                            </button>
                         </div>
                     </li>
                     <li class="nav-item"><a class="nav-link active" href="#home">Home</a></li>

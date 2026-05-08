@@ -36,6 +36,46 @@ body {
     position: relative;
 }
 
+/* Simple transparent theme toggle button */
+.theme-toggle-container {
+    display: flex;
+    align-items: center;
+}
+
+.theme-toggle-button {
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    border-radius: 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.06);
+    cursor: pointer;
+    transition: all 0.25s ease;
+    backdrop-filter: blur(6px);
+}
+
+.theme-toggle-button:hover {
+    transform: translateY(-2px);
+    background: rgba(255,255,255,0.06);
+}
+
+.theme-toggle-icon {
+    font-size: 18px;
+    line-height: 1;
+    display: inline-block;
+}
+
+/* Transparent variant for light navbar background */
+@media (prefers-color-scheme: light) {
+    .navbar {
+        background: rgba(255,255,255,0.06) !important;
+        backdrop-filter: blur(6px);
+    }
+}
+
 .theme-selector-button {
     display: flex;
     align-items: center;
