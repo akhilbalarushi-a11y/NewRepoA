@@ -67,10 +67,22 @@ document.addEventListener('DOMContentLoaded', function() {
             };
 
             // Validate data
+            // sleep_quality / work_load_score are optional and will be treated as normal/rest.
             if (Object.values(data).some(val => isNaN(val))) {
-                showError('Please enter valid numbers for all fields.');
-                return;
+                // allow missing sleep_quality / work_load_score
+                if (isNaN(data.sleep_quality) && isNaN(data.work_load_score)) {
+                    data.sleep_quality = 4;
+                    data.work_load_score = 5;
+                } else if (isNaN(data.sleep_quality)) {
+                    data.sleep_quality = 4;
+                } else if (isNaN(data.work_load_score)) {
+                    data.work_load_score = 5;
+                } else {
+                    showError('Please enter valid numbers for all required fields.');
+                    return;
+                }
             }
+
 
             // Try to connect to backend API
             try {

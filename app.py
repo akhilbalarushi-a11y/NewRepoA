@@ -49,14 +49,31 @@ def predict():
     try:
         data = request.get_json()
         
+        # Treat missing sleep_quality / work_load_score as “rest/normal” defaults
+        sleep_default = 4  # normal/rest range (1-8)
+        workload_default = 5  # normal/rest range (1-10)
+
+        data = data or {}
+        if data.get('sleep_quality') is None:
+            data['sleep_quality'] = sleep_default
+        if data.get('work_load_score') is None:
+            data['work_load_score'] = workload_default
+
         # Extract features from the JSON data and ensure correct order
         input_features = [float(data.get(feature, 0)) for feature in feature_names]
 
-        # Check if all required features are present
-        if None in input_features or any(v == 0 and data.get(feature_names[i]) is None for i, v in enumerate(input_features)):
-            missing_features = [feature_names[i] for i, val in enumerate(input_features) if data.get(feature_names[i]) is None]
-            if missing_features:
-                return jsonify({'error': f'Missing features: {", ".join(missing_features)}'}), 400
+        # Validate remaining features: if a feature is absent (null), reject
+        # (exercise_minutes/hours_worked/social_interactions/heart_rate must be provided)
+        required_except_defaults = [
+            'exercise_minutes',
+            'hours_worked',
+            'social_interactions',
+            'heart_rate'
+        ]
+        missing = [f for f in required_except_defaults if data.get(f) is None]
+        if missing:
+            return jsonify({'error': f'Missing features: {", ".join(missing)}'}), 400
+
 
         # Convert to DataFrame suitable for the model
         input_df = pd.DataFrame([input_features], columns=feature_names)
